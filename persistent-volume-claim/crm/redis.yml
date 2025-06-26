@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sloopstash-${ENVIRONMENT}-crm-redis-data
+spec:
+  storageClassName: sloopstash-${ENVIRONMENT}-crm-redis-data
+  volumeName: sloopstash-${ENVIRONMENT}-crm-redis-0-data
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sloopstash-${ENVIRONMENT}-crm-redis-log
+spec:
+  storageClassName: sloopstash-${ENVIRONMENT}-crm-redis-log
+  volumeName: sloopstash-${ENVIRONMENT}-crm-redis-0-log
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

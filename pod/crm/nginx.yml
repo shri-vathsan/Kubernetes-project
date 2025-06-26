@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx
+spec:
+  containers:
+    - name: main
+      image: sloopstash/nginx:v1.24.0
+      command: ["/usr/bin/supervisord"]
+      args: ["-c", "/etc/supervisord.conf"]
+      volumeMounts:
+        - name: nginx-log
+          mountPath: /opt/nginx/log
+        - name: supervisor-server
+          mountPath: /etc/supervisord.conf
+          subPath: supervisor-server
+        - name: nginx-supervisor
+          mountPath: /opt/nginx/system/supervisor.ini
+          subPath: supervisor.ini
+        - name: nginx-server
+          mountPath: /opt/nginx/conf/server.conf
+          subPath: server.conf
+      ports:
+        - containerPort: 80
+    - name: log
+      image: sloopstash/nginx:v1.24.0
+      command: ["/usr/bin/supervisord"]
+      args: ["-c", "/etc/supervisord.conf"]
+      volumeMounts:
+        - name: nginx-log
+          mountPath: /opt/nginx/log
+        - name: supervisor-server
+          mountPath: /etc/supervisord.conf
+          subPath: supervisor-server
+  volumes:
+    - name: nginx-log
+      persistentVolumeClaim:
+        claimName: sloopstash-${ENVIRONMENT}-crm-nginx-log
+    - name: supervisor-server
+      configMap:
+        name: nginx
+    - name: nginx-supervisor
+      configMap:
+        name: nginx
+        items:
+          - key: supervisor.ini
+            path: supervisor.ini
+    - name: nginx-server
+      configMap:
+        name: nginx
+        items:
+          - key: server.conf
+            path: server.conf

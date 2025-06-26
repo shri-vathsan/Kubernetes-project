@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx
+spec:
+  selector:
+    matchLabels:
+      service: nginx
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        service: nginx
+    spec:
+      containers:
+        - name: main
+          image: sloopstash/nginx:v1.24.0
+          command: ["/usr/bin/supervisord"]
+          args: ["-c", "/etc/supervisord.conf"]
+          volumeMounts:
+            - name: app-source
+              mountPath: /opt/app/source
+            - name: nginx-log
+              mountPath: /opt/nginx/log
+            - name: supervisor-server
+              mountPath: /etc/supervisord.conf
+              subPath: supervisor-server
+            - name: nginx-supervisor
+              mountPath: /opt/nginx/system/supervisor.ini
+              subPath: supervisor.ini
+            - name: nginx-server
+              mountPath: /opt/nginx/conf/server.conf
+              subPath: server.conf
+            - name: nginx-app
+              mountPath: /opt/nginx/conf/app.conf
+              subPath: nginx-app
+          ports:
+            - containerPort: 80
+        - name: log
+          image: sloopstash/nginx:v1.24.0
+          command: ["/usr/bin/supervisord"]
+          args: ["-c", "/etc/supervisord.conf"]
+          volumeMounts:
+            - name: nginx-log
+              mountPath: /opt/nginx/log
+            - name: supervisor-server
+              mountPath: /etc/supervisord.conf
+              subPath: supervisor-server
+      volumes:
+        - name: app-source
+          hostPath:
+            path: ${CRM_APP_SOURCE}
+            type: Directory
+        - name: nginx-log
+          persistentVolumeClaim:
+            claimName: sloopstash-${ENVIRONMENT}-crm-nginx-log
+        - name: supervisor-server
+          configMap:
+            name: nginx
+        - name: nginx-supervisor
+          configMap:
+            name: nginx
+            items:
+              - key: supervisor.ini
+                path: supervisor.ini
+        - name: nginx-server
+          configMap:
+            name: nginx
+            items:
+              - key: server.conf
+                path: server.conf
+        - name: nginx-app
+          configMap:
+            name: nginx
+ 

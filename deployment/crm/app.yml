@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+spec:
+  selector:
+    matchLabels:
+      service: app
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        service: app
+    spec:
+      containers:
+        - name: main
+          image: sloopstash/python:v2.7
+          command: ["/usr/bin/supervisord"]
+          args: ["-c", "/etc/supervisord.conf"]
+          env:
+            - name: STATIC_ENDPOINT
+              value: app-static.crm.sloopstash.${ENVIRONMENT}:${CRM_NGINX_PORT}
+          volumeMounts:
+            - name: app-source
+              mountPath: /opt/app/source
+            - name: app-log
+              mountPath: /opt/app/log
+            - name: supervisor-server
+              mountPath: /etc/supervisord.conf
+              subPath: supervisor-server
+            - name: app-supervisor
+              mountPath: /opt/app/system/supervisor.ini
+              subPath: app-supervisor
+          ports:
+            - containerPort: 2000
+        - name: log
+          image: sloopstash/python:v2.7
+          command: ["/usr/bin/supervisord"]
+          args: ["-c", "/etc/supervisord.conf"]
+          volumeMounts:
+            - name: app-log
+              mountPath: /opt/app/log
+            - name: supervisor-server
+              mountPath: /etc/supervisord.conf
+              subPath: supervisor-server
+      volumes:
+        - name: app-source
+          hostPath:
+            path: ${CRM_APP_SOURCE}
+            type: Directory
+        - name: app-log
+          persistentVolumeClaim:
+            claimName: sloopstash-${ENVIRONMENT}-crm-app-log
+        - name: supervisor-server
+          configMap:
+            name: app
+        - name: app-supervisor
+          configMap:
+            name: app
+ 

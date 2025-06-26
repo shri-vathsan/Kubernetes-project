@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: redis
+spec:
+  containers:
+    - name: main
+      image: sloopstash/redis:v7.2.1
+      command: ["/usr/bin/supervisord"]
+      args: ["-c", "/etc/supervisord.conf"]
+      volumeMounts:
+        - name: redis-data
+          mountPath: /opt/redis/data
+        - name: redis-log
+          mountPath: /opt/redis/log
+        - name: supervisor-server
+          mountPath: /etc/supervisord.conf
+          subPath: supervisor-server
+        - name: redis-supervisor
+          mountPath: /opt/redis/system/supervisor.ini
+          subPath: supervisor.ini
+        - name: redis-server
+          mountPath: /opt/redis/conf/server.conf
+          subPath: server.conf
+      ports:
+        - containerPort: 3000
+    - name: log
+      image: sloopstash/redis:v7.2.1
+      command: ["/usr/bin/supervisord"]
+      args: ["-c", "/etc/supervisord.conf"]
+      volumeMounts:
+        - name: redis-log
+          mountPath: /opt/redis/log
+        - name: supervisor-server
+          mountPath: /etc/supervisord.conf
+          subPath: supervisor-server
+  volumes:
+    - name: redis-data
+      persistentVolumeClaim:
+        claimName: sloopstash-${ENVIRONMENT}-crm-redis-data
+    - name: redis-log
+      persistentVolumeClaim:
+        claimName: sloopstash-${ENVIRONMENT}-crm-redis-log
+    - name: supervisor-server
+      configMap:
+        name: redis
+    - name: redis-supervisor
+      configMap:
+        name: redis
+        items:
+          - key: supervisor.ini
+            path: supervisor.ini
+    - name: redis-server
+      configMap:
+        name: redis
+        items:
+          - key: server.conf
+            path: server.conf
+ 

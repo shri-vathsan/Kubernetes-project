@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  selector:
+    matchLabels:
+      service: redis
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        service: redis
+    spec:
+      containers:
+        - name: main
+          image: sloopstash/redis:v7.2.1
+          command: ["/usr/bin/supervisord"]
+          args: ["-c", "/etc/supervisord.conf"]
+          volumeMounts:
+            - name: redis-data
+              mountPath: /opt/redis/data
+            - name: redis-log
+              mountPath: /opt/redis/log
+            - name: supervisor-server
+              mountPath: /etc/supervisord.conf
+              subPath: supervisor-server
+            - name: redis-supervisor
+              mountPath: /opt/redis/system/supervisor.ini
+              subPath: supervisor.ini
+            - name: redis-server
+              mountPath: /opt/redis/conf/server.conf
+              subPath: server.conf
+          ports:
+            - containerPort: 3000
+        - name: log
+          image: sloopstash/redis:v7.2.1
+          command: ["/usr/bin/supervisord"]
+          args: ["-c", "/etc/supervisord.conf"]
+          volumeMounts:
+            - name: redis-log
+              mountPath: /opt/redis/log
+            - name: supervisor-server
+              mountPath: /etc/supervisord.conf
+              subPath: supervisor-server
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-data
+        - name: redis-log
+          persistentVolumeClaim:
+            claimName: redis-log
+        - name: supervisor-server
+          configMap:
+            name: redis
+        - name: redis-supervisor
+          configMap:
+            name: redis
+            items:
+              - key: supervisor.ini
+                path: supervisor.ini
+        - name: redis-server
+          configMap:
+            name: redis
+            items:
+              - key: server.conf
+                path: server.conf
+  volumeClaimTemplates:
+    - metadata:
+        name: redis-data
+      spec:
+        storageClassName: sloopstash-${ENVIRONMENT}-crm-redis-data
+        volumeName: sloopstash-${ENVIRONMENT}-crm-redis-0-data
+        volumeMode: Filesystem
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi
+    - metadata:
+        name: redis-log
+      spec:
+        storageClassName: sloopstash-${ENVIRONMENT}-crm-redis-log
+        volumeName: sloopstash-${ENVIRONMENT}-crm-redis-0-log
+        volumeMode: Filesystem
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 2Gi
+ 
